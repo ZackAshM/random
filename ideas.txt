@@ -1,0 +1,20 @@
+Ideas for projects to do if I ever find the time...
+
+Games:
+- Snake
+- Sudoku Solver
+- 2D Platformer
+- Rhythm Game (Like Guitar Hero)
+- Maze (Generator+Solver)
+- Tic Tac Toe
+- Pong
+- Checkers
+
+Other:
+- Twitter Bot
+- Password Generator (Include at least one number, lower, upper, special char)
+
+Big:
+- Continuation of SPyS (analysis and plotter for undergrad labs)
+- Continuation & Improvement of Star Cluster (+Galaxy) Mergers
+- Convert another project listed to web-based app (using Flask?)

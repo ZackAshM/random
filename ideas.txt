@@ -18,3 +18,4 @@ Big:
 - Continuation of SPyS (analysis and plotter for undergrad labs)
 - Continuation & Improvement of Star Cluster (+Galaxy) Mergers
 - Convert another project listed to web-based app (using Flask?)
+- Equivalent of Pearson MasteringPhysics but it is score based (to use Super Mario Effect)

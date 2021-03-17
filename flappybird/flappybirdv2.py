@@ -1,37 +1,21 @@
 # cleaning up the first flappybird code,
 # so... it's now my organization rather than the tutorial's
-# Edits also made for easier use to train an AI to play (observations)
+# Edits also made for easier use to train an AI to play
 
 import pygame, sys, random
 
 class FlappyBird:
-    def __init__(self, observe=False):
+    def __init__(self):
         self.size = (288, 512)
         self.score = 0
         self.high_score = 0
         self.gravity = 0.3
         self.pipe_gap = 150
         self.game_active = False # False when start or gameover
+        self.disable_keys = False
+        self.timer = pygame.time.Clock()
+        self.dt = 0
         self.framerate = 60
-        self.observe = observe
-
-    def get_observation(self):
-        '''Returns distances to next two pipes (mid open edge)'''
-        observation = []
-        bird_x, bird_y = self.bird_rect.center
-        for pipe in self.pipe_list:
-            if pipe.bottom >= 512:
-                pipe_x, pipe_y = pipe.midtop
-            else:
-                pipe_x, pipe_y = pipe.midbottom
-            dx = pipe_x - bird_x
-            if (dx > 0) and (len(observation) < 2):
-                dy = pipe_y - bird_y
-                dist = (dx**2 + dy**2)**0.5 / self.pipe_gap # normalized to pipe gap
-                observation.append(dist)
-        while len(observation) < 2:
-            observation.append(-1)
-        return observation
     
     def start(self):
         pygame.mixer.pre_init(frequency=44100, size=-16, channels=1, buffer=512)
@@ -57,9 +41,6 @@ class FlappyBird:
         self.title_init()
         self.bird_init()
         self.pipes_init()
-
-        if self.observe:
-            self.observation = self.get_observation() 
 
     def bg_init(self):
         self.bg_surface = pygame.image.load('assets/sprites/background-day.png').convert()
@@ -131,19 +112,21 @@ class FlappyBird:
         return new_bird, new_bird_rect
 
     # gameplay functions
+    def reset(self):
+        self.bird_velocity = 0
+        self.bird_rect.center = (50,256)
+        self.pipe_list.clear()
+        self.game_active = False
+    
     def check_collision(self):
         for pipe in self.pipe_list:
             if self.bird_rect.colliderect(pipe):
-                self.pipe_list.clear()
                 self.sounds['death'].play()
-                return False
+                self.reset()
 
         if self.bird_rect.top <= -100 or self.bird_rect.bottom >= 450:
-            self.pipe_list.clear()
             self.sounds['death'].play()
-            return False
-
-        return True
+            self.reset()
 
     def score_display(self, game_state):
         if game_state == 'main_game':
@@ -161,10 +144,12 @@ class FlappyBird:
             self.screen.blit(highscore_surface, highscore_rect)
 
     def update_score(self):
+        self.reward = 0
         for pipe in self.pipe_list:
             if self.bird_rect.centerx == pipe.centerx:
                 self.sounds['score'].play()
-                new_score = self.score + 1
+                self.reward = 1
+                new_score = self.score + self.reward
                 new_highscore = new_score if new_score > self.high_score else self.high_score
                 return new_score, new_highscore
         return self.score, self.high_score
@@ -176,18 +161,21 @@ class FlappyBird:
                 sys.exit()
                 
             if event.type == pygame.KEYDOWN:
-                if (event.key == pygame.K_SPACE) and self.game_active:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+                if (event.key == pygame.K_SPACE) and self.game_active and (self.disable_keys == False):
                     self.bird_velocity = 0   # reset velocity
                     self.bird_velocity -= 6  # jump
                     self.sounds['flap'].play()
-                if (event.key == pygame.K_SPACE) and (self.game_active == False):
+                    self.disable_keys = True
+                if (event.key == pygame.K_SPACE) and (self.game_active == False) and (self.disable_keys == False):
                     self.game_active = True
-                    self.pipe_list.clear()
                     pygame.time.set_timer(self.SPAWNPIPE, self.pipe_spawnrate)
-                    self.bird_rect.center = (50,256)
                     self.bird_velocity = -6
                     self.score = 0
                     self.sounds['flap'].play()
+                    self.disable_keys = True
                     
             if event.type == self.SPAWNPIPE:
                 self.pipe_list.extend(self.create_pipes())
@@ -203,6 +191,13 @@ class FlappyBird:
                 self.bird_surface, self.bird_rect = self.bird_animation()
 
     def step(self):
+        if self.disable_keys:
+            self.dt += self.timer.tick(self.framerate)
+            if 200 - self.dt <= 0:
+                self.disable_keys = False
+                self.timer = pygame.time.Clock()
+                self.dt = 0
+        
         self.check_events()
         self.screen.blit(self.bg_surface, (0,0))
         
@@ -211,7 +206,7 @@ class FlappyBird:
             self.rotated_bird = self.rotate_bird()
             self.bird_rect.centery += self.bird_velocity
             self.screen.blit(self.rotated_bird, self.bird_rect)
-            self.game_active = self.check_collision()
+            self.check_collision()
 
             if len(self.pipe_list) > 4:
                 self.pipe_list = self.pipe_list[-4::]
@@ -220,8 +215,6 @@ class FlappyBird:
             self.score_display('main_game')
             self.score, self.high_score = self.update_score()
 
-            if self.observe:
-                self.observation = self.get_observation()
         else:
             pygame.time.set_timer(self.SPAWNPIPE, 0)
             self.screen.blit(self.title_surface,self.title_rect)
@@ -231,12 +224,11 @@ class FlappyBird:
         pygame.display.update()
         self.clock.tick(self.framerate)
 
+    def run(self):
+        self.start()
+        while True:
+            self.step()
+
 if __name__ == "__main__":
-    game = FlappyBird(observe=True)
-    game.start()
-    # i = 0
-    while True:
-        # i+=1
-        game.step()
-        # if i % 50 == 0:
-        #     print(game.observation)
+    game = FlappyBird()
+    game.run()

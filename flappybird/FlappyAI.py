@@ -1,5 +1,9 @@
 # DQN to have an AI learn and play our FlappyBird
 
+import os
+MAIN_DIR = '/Users/zackashm/Documents/Programming/random/flappybird/'
+os.chdir(MAIN_DIR)
+
 import numpy as np
 import random
 
